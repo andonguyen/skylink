@@ -48,21 +48,49 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
     
     var pendingAircraftState: NSMutableDictionary? = nil
     
-    let APP_KEY = "6230781d3b55bc83403fe6e4"
-    
+    let APP_KEY = "f8c62b8389f369db99f6d0c9"
+    /*
     override func viewDidLoad() {
         
         self.captureHighResButton.enabled = false;
         self.captureLowResButton.enabled = false;
         
         super.viewDidLoad()
+
         // Do any additional setup after loading the view, typically from a nib.
         
         debug("Initializing...")
+        
+        
         DJISDKManager.registerApp(APP_KEY, withDelegate: self)
         
         ViewController.sharedInstance = self;
         DataManager.sharedInstance
+        
+        updatePosition()
+    }
+    */
+    
+    
+    override func viewDidLoad() {
+        self.captureHighResButton.enabled = false;
+        self.captureLowResButton.enabled = false;
+        
+        super.viewDidLoad()
+        // Do any additional setup after loading the view from its nib.
+        
+        debug("Initializing...")
+        
+        DJISDKManager.registerApp(APP_KEY, withDelegate: self)
+        ViewController.sharedInstance = self;
+        DataManager.sharedInstance
+        
+        let camera: DJICamera? = self.fetchCamera()
+        if camera != nil {
+            camera!.delegate = self
+//            updateThermalCameraUI()
+        }
+        self.isSettingMode = false
         
         updatePosition()
     }
@@ -72,7 +100,91 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         // Dispose of any resources that can be recreated.
     }
     
+    override func viewWillAppear(animated: Bool) {
+        super.viewWillAppear(animated)
+        VideoPreviewer.instance().start()
+        VideoPreviewer.instance().setView(self.fpvView)
+    }
+    
+    override func viewWillDisappear(animated: Bool) {
+        super.viewWillDisappear(animated)
+        VideoPreviewer.instance().unSetView()
+    }
+    
+    func camera(camera: DJICamera, didReceiveVideoData videoBuffer: UnsafeMutablePointer<UInt8>, length size: Int){
+        VideoPreviewer.instance().push(videoBuffer, length: Int32(size))
+//        let pBuffer = UnsafeMutablePointer<UInt8>.alloc(size)
+//        memcpy(pBuffer, videoBuffer, size)
+//        VideoPreviewer.instance().dataQueue.push(pBuffer, length: Int32(size))
+    }
+    
+    func camera(camera: DJICamera, didGenerateNewMediaFile newMedia: DJIMedia) {
+        debug("generated new media file")
+        self.pendingMedia = newMedia;
+    }
+    
+    func camera(camera: DJICamera, didUpdateSystemState systemState: DJICameraSystemState) {
+        
+        
+        if (self.oldCameraMode != systemState.mode) {
+            var cameraMode:String = ""
+            switch (systemState.mode) {
+            case DJICameraMode.MediaDownload: cameraMode="MediaDownload"; break;
+            case DJICameraMode.Playback: cameraMode="Playback"; break;
+            case DJICameraMode.RecordVideo: cameraMode="RecordVideo"; break;
+            case DJICameraMode.ShootPhoto: cameraMode="ShootPhoto"; break;
+            case DJICameraMode.Unknown: cameraMode="Unknown"; break;
+            }
+            debug("camera:didUpdateSystemState: \(cameraMode)")
+            self.oldCameraMode = systemState.mode
+        }
+        
+        if (!self.storingPhoto && systemState.isStoringPhoto) {
+            debug("aircraft is storing photo")
+            self.storingPhoto = true
+        }
+        if (self.storingPhoto && !systemState.isStoringPhoto) {
+            
+            debug("storing photo complete")
+            self.storingPhoto = false
+            self.captureHighResButton.enabled = true;
+            self.captureLowResButton.enabled = true;
+            
+            if let _ = self.pendingAircraftState, media = self.pendingMedia {
+                debug("uploading photo to cloudant")
+                let camera: DJICamera? = self.fetchCamera()
+                camera!.setCameraMode(DJICameraMode.MediaDownload, withCompletion: {[weak self](error: NSError?) -> Void in
+                    if error != nil {
+                        self?.debug("ERROR: camera:didGenerateNewMediaFile:setCameraMode: \(error!.description)")
+                        self!.resetToCaptureState()
+                    }
+                    else {
+                        //wait for setCameraMode to finish
+                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), {() -> Void in
+                            self?.debug("downloading media.  live video will be temporarily interrupted while transmitting media.")
+                            self?.downloadMedia(media, completion: { (data) in
+                                if (data == nil) {
+                                    self?.debug("error downloading media from aircraft.")
+                                    self!.resetToCaptureState()
+                                }
+                                else {
+                                    self?.debug("downloaded media from aircraft.")
+                                    self!.writeHighResCaptureEntry(data);
+                                }
+                            })
+                        })
+                        
+                    }
+                    
+                    })
+            }
+        }
+        
+        
+    }
+    
     func connectVideo() {
+        
         debug("attaching video feed...")
         let camera: DJICamera? = self.fetchCamera()
         if camera != nil {
@@ -87,6 +199,7 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         
         
         VideoPreviewer.instance().start()
+        
         // captureButton.enabled = false
         getCameraMode()
         
@@ -95,33 +208,6 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
             self.viewFinder.alpha = 1.0
         }
     }
-    
-    func disconnectVideo() {
-        debug("detaching video feed...")
-        let camera: DJICamera? = self.fetchCamera()
-        if camera != nil {
-            camera!.delegate = nil
-        }
-        VideoPreviewer.instance().stop();
-        VideoPreviewer.instance().unSetView()
-        VideoPreviewer.instance().reset()
-        
-        self.captureHighResButton.enabled = false;
-        self.captureLowResButton.enabled = false;
-    }
-    
-    
-    
-    override func viewWillAppear(animated: Bool) {
-        super.viewWillAppear(animated)
-        VideoPreviewer.instance().setView(self.fpvView)
-    }
-    
-    override func viewWillDisappear(animated: Bool) {
-        super.viewWillDisappear(animated)
-        VideoPreviewer.instance().unSetView()
-    }
-    
     
     func debug(value:Any) {
         
@@ -144,12 +230,13 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         debug("getCameraMode")
         let camera: DJICamera? = self.fetchCamera()
         if camera != nil {
-            
             camera?.getCameraModeWithCompletion({[weak self](mode: DJICameraMode, error: NSError?) -> Void in
                 
                 if error != nil {
                     self?.debug("ERROR: getCameraModeWithCompletion::\(error!.description)")
-                    self?.showAlertResult("ERROR: getCameraModeWithCompletion::\(error!.description)")
+                    //self?.showAlertResult("ERROR: getCameraModeWithCompletion::\(error!.description)")
+                    self!.captureHighResButton.enabled = true;
+                    self!.captureLowResButton.enabled = true;
                 }
                 else if mode == DJICameraMode.ShootPhoto {
                     self!.captureHighResButton.enabled = true;
@@ -232,7 +319,7 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         }
         
         if let fc = flightController {
-            heading = "\(fc.compass.heading)"
+            heading = "\(fc.compass!.heading)"
             
         }
         
@@ -270,7 +357,7 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
                 aircraftMapAnnotation!.coordinate = CLLocationCoordinate2D(latitude: state.aircraftLocation.latitude, longitude: state.aircraftLocation.longitude)
                 
                 if let fc = flightController {
-                    let radians = (fc.compass.heading) / 180.0 * M_PI
+                    let radians = (fc.compass!.heading) / 180.0 * M_PI
                     aircraftMapMarker!.transform = CGAffineTransformMakeRotation(CGFloat(radians))
                 }
             }
@@ -305,15 +392,6 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
     }
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
     func captureAircraftState() -> NSMutableDictionary {
         
         var lat = "-", lon = "-", alt = "-", heading = "-", x = "-", y = "-", z = "-", aircraft = "undefined"
@@ -326,7 +404,7 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
             x = String(format: "%5f", state.velocityX)
             y = String(format: "%5f", state.velocityY)
             z = String(format: "%5f", state.velocityZ)
-            heading = "\(fc.compass.heading)"
+            heading = "\(fc.compass!.heading)"
         }
         
         let now = NSDate()
@@ -351,15 +429,6 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
     }
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
     @IBAction func onLowResButtonPress(sender: UIButton) {
         debug("capture low res image from video stream")
         
@@ -379,87 +448,11 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         }
     }
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     
     var oldCameraMode:DJICameraMode? = nil
     var storingPhoto:Bool = false
     var pendingMedia:DJIMedia? = nil
-    
-    func camera(camera: DJICamera, didUpdateSystemState systemState: DJICameraSystemState) {
-        
-        
-        if (self.oldCameraMode != systemState.mode) {
-            var cameraMode:String = ""
-            switch (systemState.mode) {
-            case DJICameraMode.MediaDownload: cameraMode="MediaDownload"; break;
-            case DJICameraMode.Playback: cameraMode="Playback"; break;
-            case DJICameraMode.RecordVideo: cameraMode="RecordVideo"; break;
-            case DJICameraMode.ShootPhoto: cameraMode="ShootPhoto"; break;
-            case DJICameraMode.Unknown: cameraMode="Unknown"; break;
-            }
-            debug("camera:didUpdateSystemState: \(cameraMode)")
-            self.oldCameraMode = systemState.mode
-        }
-        
-        if (!self.storingPhoto && systemState.isStoringPhoto) {
-            debug("aircraft is storing photo")
-            self.storingPhoto = true
-        }
-        if (self.storingPhoto && !systemState.isStoringPhoto) {
-            
-            debug("storing photo complete")
-            self.storingPhoto = false
-            
-            if let _ = self.pendingAircraftState, media = self.pendingMedia {
-                
-                let camera: DJICamera? = self.fetchCamera()
-                camera!.setCameraMode(DJICameraMode.MediaDownload, withCompletion: {[weak self](error: NSError?) -> Void in
-                    if error != nil {
-                        self?.debug("ERROR: camera:didGenerateNewMediaFile:setCameraMode: \(error!.description)")
-                        self!.resetToCaptureState()
-                    }
-                    else {
-                        //wait for setCameraMode to finish
-                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), {() -> Void in
-                            self?.debug("downloading media.  live video will be temporarily interrupted while transmitting media.")
-                            self?.downloadMedia(media, completion: { (data) in
-                                if (data == nil) {
-                                    self?.debug("error downloading media from aircraft.")
-                                    self!.resetToCaptureState()
-                                }
-                                else {
-                                    self?.debug("downloaded media from aircraft.")
-                                    self!.writeHighResCaptureEntry(data);
-                                }
-                            })
-                        })
-                        
-                    }
-                    
-                })
-            }
-        }
-
-        
-    }
-    
-    func camera(camera: DJICamera, didGenerateNewMediaFile newMedia: DJIMedia) {
-        debug("generated new media file")
-        self.pendingMedia = newMedia;
-    }
-    
     
     @IBAction func onHighResButtonPress(sender: UIButton) {
         debug("capturing hi res image from camera media")
@@ -500,6 +493,7 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         }
         self.resetToCaptureState()
     }
+    
     
     func resetToCaptureState() {
         
@@ -586,17 +580,7 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         }
     }
 
-
     
-    
-    
-    
-    
-    func camera(camera: DJICamera, didReceiveVideoData videoBuffer: UnsafeMutablePointer<UInt8>, length size: Int){
-        let pBuffer = UnsafeMutablePointer<UInt8>.alloc(size)
-        memcpy(pBuffer, videoBuffer, size)
-        VideoPreviewer.instance().dataQueue.push(pBuffer, length: Int32(size))
-    }
     /*
     func camera(camera: DJICamera, didUpdateSystemState systemState: DJICameraSystemState) {
         if systemState.mode == DJICameraMode.Playback || systemState.mode == DJICameraMode.MediaDownload {
@@ -616,7 +600,8 @@ class ViewController: DJIBaseViewController, DJICameraDelegate, DJIFlightControl
         }
         
         
-    }*/
+    }
+ */
 
 }
 

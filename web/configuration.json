@@ -1,5 +1,45 @@
+//{
+//  put your auth credentials from bluemix here if you want to use them in Node.js locally
+//  "cloudantNoSQLDB": [],
+//  "visual_recognition": []
+//}
 {
-  //put your auth credentials from bluemix here if you want to use them in Node.js locally
-  "cloudantNoSQLDB": [],
-  "visual_recognition": []
+   "cloudantNoSQLDB": [
+      {
+         "name": "Cloudant NoSQL DB-t8",
+         "label": "cloudantNoSQLDB",
+         "plan": "Shared",
+         "credentials": {
+            "username": "fe770e6a-a260-42f1-80b0-6bb56027baee-bluemix",
+            "password": "e3473dbcd3cdc95f86622d49495b3e1776cf5100bda122a6d59712429017d420",
+            "host": "fe770e6a-a260-42f1-80b0-6bb56027baee-bluemix.cloudant.com",
+            "port": 443,
+            "url": "https://fe770e6a-a260-42f1-80b0-6bb56027baee-bluemix:e3473dbcd3cdc95f86622d49495b3e1776cf5100bda122a6d59712429017d420@fe770e6a-a260-42f1-80b0-6bb56027baee-bluemix.cloudant.com"
+         }
+      }
+   ],
+   "alchemy_api": [
+      {
+         "name": "AlchemyAPI-a9",
+         "label": "alchemy_api",
+         "plan": "free",
+         "credentials": {
+            "url": "https://gateway-a.watsonplatform.net/calls",
+            "note": "It may take up to 5 minutes for this key to become active. This is your previously active free apikey. If you want a different one, please wait 24 hours after unbinding the key and try again.",
+            "apikey": "52fa3856a281d182a271e4b594028db961f35aea"
+         }
+      }
+   ],
+   "watson_vision_combined": [
+      {
+         "name": "Visual Recognition-bp",
+         "label": "watson_vision_combined",
+         "plan": "free",
+         "credentials": {
+            "url": "https://gateway-a.watsonplatform.net/visual-recognition/api",
+            "note": "It may take up to 5 minutes for this key to become active. This is your previously active free apikey. If you want a different one, please wait 24 hours after unbinding the key and try again.",
+            "api_key": "b60342bcd67b2b88fd288be1ec421f50681c8633"
+         }
+      }
+   ]
 }

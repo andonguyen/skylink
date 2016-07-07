@@ -475,9 +475,9 @@ function analyzeImage(args, fileName, analyzeCallback) {
 
         var watson = require('watson-developer-cloud')
         var visual_recognition = watson.visual_recognition({
-          username: args.watsonUsername,
-          password: args.watsonPassword,
-          version: 'v1'
+          api_key: 'b60342bcd67b2b88fd288be1ec421f50681c8633',
+          version: 'v3'
+          version_date: '2016-05-20'
         })
 
         visual_recognition.recognize(params, function (err, body) {

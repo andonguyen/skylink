@@ -54,7 +54,7 @@ class DataManager: NSObject, CDTReplicatorDelegate {
         
         do {
         
-            let s = "" //cloudant URL goes here
+            let s = "https://fe770e6a-a260-42f1-80b0-6bb56027baee-bluemix:e3473dbcd3cdc95f86622d49495b3e1776cf5100bda122a6d59712429017d420@fe770e6a-a260-42f1-80b0-6bb56027baee-bluemix.cloudant.com/overwatch" //cloudant URL goes here
             
             let remoteDatabaseURL = NSURL(string: s)
             

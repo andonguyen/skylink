@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SchemeUserState</key>
+	<dict>
+		<key>CDTDatastore.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+		<key>CocoaLumberjack.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+		<key>FMDB.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+		<key>Pods-Overwatch.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+			<key>orderHint</key>
+			<integer>4</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>A517896A197C5CC4539088B7C96A783E</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>C626C56BB328E80D32723AC104EF2763</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>CD1EE47D39797A411B3AC326072BB3F1</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>EFBD0C69C3EF5A6D4DBE8DA5CBD43FB6</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>
