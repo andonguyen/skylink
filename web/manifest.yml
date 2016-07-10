@@ -1,13 +1,13 @@
 ---
 applications:
-- name: skylink
+- name: au-skylink-demo
   memory: 256M
   instances: 2
   hosts:
-  - overwatch
-  - skylink
+  - dn-overwatch-dev
+  - dn-skylink-dev
   domain: mybluemix.net
   services:
-  - Cloudant NoSQL DB-1y
-  - Visual Recognition-03
-  - AlchemyAPI-3f
+  - CloudantNoSQLDB-t8
+  - Visual Recognition-bp
+  - AlchemyAPI-a9

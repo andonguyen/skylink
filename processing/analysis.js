@@ -16,7 +16,7 @@
 
 /**
  * Called by Whisk.
- * 
+ *
  * It expects the following parameters as attributes of "args"
  * - cloudantUrl: "https://username:password@host"
  * - cloudantDbName: "openwhisk-darkvision"
@@ -40,7 +40,7 @@ function main(args) {
 /**
  * Uses a callback so that this same code can be imported in another JavaScript
  * to test the function outside of OpenWhisk.
- * 
+ *
  * mainCallback(err, analysis)
  */
 function mainImpl(args, mainCallback) {
@@ -71,7 +71,7 @@ function mainImpl(args, mainCallback) {
           callback(err, document);
         });
       },
-      
+
       // get the image binary
       function (document, callback) {
         console.log("retrieving image binary")
@@ -83,7 +83,7 @@ function mainImpl(args, mainCallback) {
             callback(err);
           });
       },
-      
+
       // generate the thumbnail image
       function (document, callback) {
         console.log("generating thumbnail")
@@ -95,7 +95,7 @@ function mainImpl(args, mainCallback) {
           }
         });
       },
-        
+
       // trigger the analysis on the image file (only on un-analyzed document changes)
       function (document, callback) {
         console.log("processing & analyzing image")
@@ -113,7 +113,7 @@ function mainImpl(args, mainCallback) {
           //document._rev = document.rev
           console.log("Updating document: " + docRef._id + ", rev: " + docRef._rev)
           db.insert(docRef, function (err, body, headers) {
-            
+
             if (err) {
               callback(err);
             } else {
@@ -121,13 +121,13 @@ function mainImpl(args, mainCallback) {
             }
           });
       },
-    
+
       //insert thumbnail into cloudant
       function (document, analysis, callback) {
-        
+
         console.log("saving thumbnail: " + thumbFileName + " to:")
         console.log(document)
-        
+
         fs.readFile(thumbFileName, function(err, data) {
         if (err) {
             callback(err);
@@ -136,11 +136,11 @@ function mainImpl(args, mainCallback) {
             {rev:document.rev}, function(err, body) {
                     console.log("insert complete");
                     console.log(body);
-                    
-                    //remove thumb file after saved to cloudant        
+
+                    //remove thumb file after saved to cloudant
                     var fs = require('fs');
                         fs.unlink(thumbFileName);
-                        
+
                     if (err) {
                         console.log(err);
                         callback(err, body, analysis);
@@ -149,28 +149,28 @@ function mainImpl(args, mainCallback) {
                         callback(null, body, analysis);
                     }
                 });
-            } 
-        });  
+            }
+        });
      },
-     
+
      //generate thumbnails for each face that is detected
      function (newDocument, analysis, callback) {
-          
+
           /*setTimeout(function() {
             console.log("generate faces");
-            callback(null, analysis);    
+            callback(null, analysis);
           }, 500)*/
-          
+
           processFaces(newDocument, fileName, db, analysis, function (err) {
               var fs = require('fs');
               fs.unlink(fileName);
               callback(null, analysis);
-          });    
+          });
       },
     ],
-     
-      
-    
+
+
+
      function (err, analysis) {
       if (err) {
         console.log("[", imageDocumentId, "] KO", err);
@@ -195,21 +195,21 @@ function mainImpl(args, mainCallback) {
  */
 function processFaces(document, fileName, db, analysis, processCallback) {
     console.log("processing detected faces...");
-         
+
     var fs = require('fs');
-    
+
     if (analysis && analysis.hasOwnProperty("face_detection")) {
         console.log("analysis has face_detection");
-            
+
         var faceIndex = -1,
             facesToProcess = analysis.face_detection.imageFaces,
             latestDocument = document;
-        
+
         //iteratively create images for each face that is detected
         var inProgressCallback = function (err) {
             console.log("inside inProgressCallback");
             faceIndex++;
-        
+
             if (err) {
                 processCallback( err );
                 console.log(err)
@@ -217,11 +217,11 @@ function processFaces(document, fileName, db, analysis, processCallback) {
                 if (faceIndex < facesToProcess.length) {
                     console.log('generating face ' + (faceIndex+1) + " of " + facesToProcess.length);
                     generateFaceImage(fileName, facesToProcess[faceIndex], "face" + faceIndex +".jpg", function(err, faceImageName) {
-                        
+
                         if (err) {
                             inProgressCallback(err);
                         } else {
-                        
+
                         //save to cloudant
                         console.log("saving face image: " + faceImageName)
                             fs.readFile(faceImageName, function(readErr, data) {
@@ -233,26 +233,26 @@ function processFaces(document, fileName, db, analysis, processCallback) {
                                         console.log("insert complete");
                                         console.log(body);
                                         latestDocument = body;
-                                        
-                                        //remove thumb file after saved to cloudant        
+
+                                        //remove thumb file after saved to cloudant
                                         var fs = require('fs');
                                             fs.unlink(faceImageName);
-                                            
+
                                         console.log("saved thumbnail");
                                         inProgressCallback(saveErr);
-                                        
+
                                     });
-                                } 
-                            });  
-                        
-                        }     
+                                }
+                            });
+
+                        }
                     });
                 } else {
                     processCallback(null)
                 }
             }
         }
-        
+
         inProgressCallback(null);
     }  ;
 }
@@ -262,7 +262,7 @@ function processFaces(document, fileName, db, analysis, processCallback) {
  * prepareCallback = function(err, fileName);
  */
 function generateFaceImage(fileName, faceData, faceImageName, callback) {
-   
+
     console.log('inside generateFaceImage');
     var
         fs = require('fs'),
@@ -270,7 +270,7 @@ function generateFaceImage(fileName, faceData, faceImageName, callback) {
         gm = require('gm').subClass({
         imageMagick: true
         });
-    
+
     gm(fileName)
         .crop(faceData.width, faceData.height, faceData.positionX, faceData.positionY)
         .write(faceImageName, function (err) {
@@ -291,7 +291,7 @@ function generateFaceImage(fileName, faceData, faceImageName, callback) {
  */
 function processThumbnail(args, fileName, thumbFileName, processCallback) {
     generateThumbnail(fileName, thumbFileName, function (err) {
-             
+
         //save to cloudant
         processCallback(err, thumbFileName);
   });
@@ -308,7 +308,7 @@ function generateThumbnail(fileName, thumbFileName, callback) {
         gm = require('gm').subClass({
         imageMagick: true
         });
-    
+
     gm(fileName)
         .resize(200, 200)
         .write(thumbFileName, function (err) {
@@ -316,7 +316,7 @@ function generateThumbnail(fileName, thumbFileName, callback) {
                 callback( err );
                 console.log(err)
             } else {
-                
+
                 console.log('thumb generation done');
                 callback(null, thumbFileName);
             }
@@ -473,23 +473,34 @@ function analyzeImage(args, fileName, analyzeCallback) {
           image_file: fs.createReadStream(fileName)
         }
 
-        var watson = require('watson-developer-cloud')
-        var visual_recognition = watson.visual_recognition({
-          api_key: 'b60342bcd67b2b88fd288be1ec421f50681c8633',
-          version: 'v3'
-          version_date: '2016-05-20'
-        })
+        var request = require('request');
+        var visual_recognition_url = "https://gateway-a.watsonplatform.net/visual-recognition/api/v3/classify"
+        var imageUrl = "http://dn-overwatch-dev.mybluemix.net/" + args.doc._id + "/attachments/image.jpg";
+        var qs = {
+          api_key:'b60342bcd67b2b88fd288be1ec421f50681c8633',
+          version: '2016-05-20'
+        };
 
-        visual_recognition.recognize(params, function (err, body) {
-          if (err) {
-            console.log("Watson", err);
-          } else {
-            console.log("Watson:")
-            console.log(body)
-            analysis.visual_recognition = body;
+        var formData = {
+          images_file: fs.createReadStream(fileName)
+        }
+
+        request.post({
+          url: visual_recognition_url,
+          formData: formData,
+          qs: qs
+        },
+          function(err,res,body) {
+            if (err) {
+              console.log("Watson", err);
+            } else {
+              console.log("Watson:")
+              console.log(body)
+              analysis.visual_recognition = JSON.parse(body);
+            }
+            callback(null);
           }
-          callback(null);
-        });
+        );
     }
   ],
     function (err, result) {

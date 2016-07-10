@@ -1,12 +1,7 @@
-//{
-//  put your auth credentials from bluemix here if you want to use them in Node.js locally
-//  "cloudantNoSQLDB": [],
-//  "visual_recognition": []
-//}
 {
    "cloudantNoSQLDB": [
       {
-         "name": "Cloudant NoSQL DB-t8",
+         "name": "CloudantNoSQLDB-t8",
          "label": "cloudantNoSQLDB",
          "plan": "Shared",
          "credentials": {

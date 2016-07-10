@@ -10,13 +10,13 @@ var Cloudant = require('cloudant');
 // From Bluemix configuration or local file
 var environment, cloudantCredentials, vrCredentials;
 if( process.env.VCAP_SERVICES ) {
-    environment = JSON.parse( process.env.VCAP_SERVICES );    
+    environment = JSON.parse( process.env.VCAP_SERVICES );
 } else {
     environment = jsonfile.readFileSync( 'configuration.json' );
 }
 
 cloudantCredentials = environment['cloudantNoSQLDB'][0].credentials
-vrCredentials = environment['visual_recognition'][0].credentials
+vrCredentials = environment['watson_vision_combined'][0].credentials
 
 // Initialize Cloudant DB
 var cloudant = Cloudant(cloudantCredentials.url);
@@ -37,15 +37,15 @@ app.use( '/public', express.static( __dirname + '/public' ) );
 
 
 app.get('/', function (req, res) {
-    //for now just returning all images.  
+    //for now just returning all images.
     //in the real world you would want to filter this list or truncate/page it
-    
+
     db.view( 'overwatch.images',  'overwatch.images', function(err, body) {
         if (err) {
             res.status(404).send(err.toString());
             return;
         }
-        //this should really be sorted on the database 
+        //this should really be sorted on the database
         body.rows = body.rows.sort(sortList)
         res.render("list", { body:body});
     })
